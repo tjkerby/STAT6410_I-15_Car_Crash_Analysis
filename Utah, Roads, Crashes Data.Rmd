@@ -1,0 +1,136 @@
+---
+title: "Utah Car Accidents Data and Code"
+author: "Kenneth Pomeyie, Scout Jarman, Paul Gaona-Partida"
+output:
+  html_notebook: default
+  pdf_document: default
+---
+### Load Libraries and Data file
+```{r}
+# For Data Cleaning and Visualization
+library("dplyr")
+library("tigris")
+library("ggplot2")
+library("sf")
+# For AOI and climateR
+library('lattice')
+library("raster")
+library("rasterVis")
+library("AOI")
+library("climateR")
+
+crash <- read.csv("RawCrashData2020.csv")
+```
+
+
+
+### Data Prepping
+
+## Car Accidents
+
+```{r}
+# subset to retain only potentially useful information
+# Route: I-15 Highway route
+# milepoint: Milepoint of accident
+# Coords: Lat and Long
+
+crash_i15 <- crash %>%
+  dplyr::select(.,Route,Milepoint,Lat,Long) %>%
+  dplyr::filter(Route == "0015")
+```
+
+```{r}
+# Basic plot of points of accidents
+ggplot()+
+  geom_point(data = crash_i15,
+             aes(x = Long, y = Lat))
+```
+
+```{r}
+# Sf with NAD83 matches CRS of Utah map and Roads
+i15_spat <- sf::st_as_sf(x = crash_i15,
+                         coords = c( "Long", "Lat"),
+                         crs = 4269)
+```
+
+```{r}
+# Plot of spatial object crashes
+crash_plot <- ggplot(i15_spat) +
+  geom_sf()
+crash_plot
+```
+
+
+
+## Roads
+
+https://www2.census.gov/geo/pdfs/maps-data/data/tiger/tgrshp2020/TGRSHP2020_TechDoc.pdf
+
+Link: Census.gob information on Tigris shapefiles
+
+Important: Original CRS = NAD83
+
+```{r}
+# subset of Interstates in Utah
+roads <- tigris::primary_secondary_roads("Utah") %>%
+  dplyr::filter(RTTYP %in% c('I'))
+```
+
+```{r}
+# plot of ALL Interstates in Utah (Utah not fitted)
+ggplot()+
+  geom_sf(data = roads,
+          color = 'blue',
+          aes(geometry = geometry))
+```
+
+```{r}
+# subset of I-15 and convert to MultiLineString
+roads_i15 <- roads[which(roads$FULLNAME == "I- 15"), ] %>%
+  sf::st_cast(.,"MULTILINESTRING")
+```
+
+```{r}
+# plot of i-15 in Utah (Interstate only)
+road_plot <- ggplot()+
+  geom_sf(data = roads_i15,
+          color = 'blue',
+          aes(geometry = geometry))
+road_plot
+```
+
+
+
+## Utah
+
+
+```{r}
+# sf of USA
+us_geo <- tigris::states(class = "sf", cb = TRUE) %>% 
+  shift_geometry()
+```
+
+```{r}
+# Subsetting to Utah and changing crs to match roads in Utah
+ut_map <- us_geo[which(us_geo$NAME == "Utah"), ] %>%
+  st_transform(. ,crs = st_crs(roads_i15))
+```
+
+```{r}
+# plot of Utah
+ut_plot <- ggplot(ut_map) +
+  geom_sf()
+ut_plot
+```
+
+```{r}
+# plot of Utah, I-15, and Car Accidents
+all_plot <- ggplot(ut_map)+
+  geom_sf(fill = NA)+
+  geom_sf(data = roads_i15,
+          color = 'red') +
+  geom_sf(data = i15_spat,
+          color = 'blue',
+          alpha = 0.025)
+all_plot
+```
