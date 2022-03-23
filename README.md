@@ -1,7 +1,7 @@
 # STAT6410_I-15_Car_Crash_Analysis
 
 ## Todo List
-- [ ] Finish Project Proposal 3/23 - Everyone
+- [X] Finish Project Proposal 3/23 - Everyone
 - [X] Get Car Crash Data - Paul
 - [X] Get Flow Data - Tom
 - [ ] Calculate distances between all car crashes and Bottom of I-15 - Kenneth
