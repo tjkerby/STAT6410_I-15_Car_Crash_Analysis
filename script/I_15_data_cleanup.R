@@ -96,11 +96,12 @@ max(post_to_latlon$Longitude)
 max(data$Longitude)
 
 data <- data %>%
-  group_by(Longitude, Latitude) %>%
+  group_by(round(Longitude,3), round(Latitude,3)) %>%
   summarise(Flow = mean(Flow), .groups = "drop")
 
 
 flow_data <- data
+round(flow_data$Longitude[4]) == round(flow_data$Longitude[5])
 # write.csv(data, file = "I_15_Flow_Data_2020.csv")
 
 # save as data as RObject
