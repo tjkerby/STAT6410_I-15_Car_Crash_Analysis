@@ -71,9 +71,9 @@ calc_lat_lon <- function(pm, Abs_PM) {
   above_weight <- above_diff / (above_diff + below_diff)
   below_weight <- below_diff / (above_diff + below_diff)
 
-  new_longitude <-
-    above_weight * post_to_latlon$Longitude[post_to_latlon$Abs_PM == PM_station_above]
-  +below_weight * post_to_latlon$Longitude[post_to_latlon$Abs_PM == PM_station_below]
+  new_longitude <- above_weight * 
+    post_to_latlon$Longitude[post_to_latlon$Abs_PM == PM_station_above] +
+    below_weight * post_to_latlon$Longitude[post_to_latlon$Abs_PM == PM_station_below]
   new_latitude <- above_weight *
     post_to_latlon$Latitude[post_to_latlon$Abs_PM == PM_station_above] +
     below_weight * post_to_latlon$Latitude[post_to_latlon$Abs_PM == PM_station_below]
@@ -84,6 +84,22 @@ calc_lat_lon <- function(pm, Abs_PM) {
 coords <- apply(flow[c("Postmile..Abs.")], 1, calc_lat_lon, Abs_PM)
 data <- as.data.frame(cbind(flow$ave_flow, t(coords)))
 colnames(data) <- c("Flow", "Longitude", "Latitude")
+
+min(post_to_latlon$Latitude)
+min(data$Latitude)
+max(post_to_latlon$Latitude)
+max(data$Latitude)
+
+min(post_to_latlon$Longitude)
+min(data$Longitude)
+max(post_to_latlon$Longitude)
+max(data$Longitude)
+
+data <- data %>%
+  group_by(Longitude, Latitude) %>%
+  summarise(Flow = mean(Flow), .groups = "drop")
+
+
 flow_data <- data
 # write.csv(data, file = "I_15_Flow_Data_2020.csv")
 
