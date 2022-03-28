@@ -9,8 +9,11 @@ load("data-raw/RObject/flow_data.RData")
 #rename data
 flow_data_list <- flow_data
 
+#add index column to data frame
+flow_data_list$index <- 1:nrow(flow_data_list)
 
-# create index
+
+#  group into list by index
 flow_data_list <- flow_data_list %>%
   dplyr::group_by(index) %>%
   dplyr::group_split()

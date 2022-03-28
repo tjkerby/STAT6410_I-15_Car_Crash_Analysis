@@ -1,5 +1,5 @@
 get_dist <- function(df) {
-  key <- "api_key"
+  key <- key
 
   dist <- googleway::google_distance(
     origins = list(c(37.05840, -113.5845)),

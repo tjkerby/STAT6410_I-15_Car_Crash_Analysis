@@ -7,10 +7,10 @@ flow_n <- read.csv("data-raw/flow_2020_N_I_15.csv")
 flow_s <- read.csv("data-raw/flow_2020_S_I_15.csv")
 
 flow_s <- subset(flow_s,
-  select = -c(Freeway, Direction, Minimum, Maximum, X..Lane.Points)
+                 select = -c(Freeway, Direction, Minimum, Maximum, X..Lane.Points)
 )
 flow_n <- subset(flow_n,
-  select = -c(Freeway, Direction, Minimum, Maximum, X..Lane.Points)
+                 select = -c(Freeway, Direction, Minimum, Maximum, X..Lane.Points)
 )
 
 
@@ -64,13 +64,13 @@ max(Abs_PM[Abs_PM < pm])
 calc_lat_lon <- function(pm, Abs_PM) {
   PM_station_above <- min(Abs_PM[Abs_PM > pm])
   PM_station_below <- max(Abs_PM[Abs_PM < pm])
-
+  
   above_diff <- PM_station_above - pm
   below_diff <- pm - PM_station_below
-
+  
   above_weight <- above_diff / (above_diff + below_diff)
   below_weight <- below_diff / (above_diff + below_diff)
-
+  
   new_longitude <- above_weight * 
     post_to_latlon$Longitude[post_to_latlon$Abs_PM == PM_station_above] +
     below_weight * post_to_latlon$Longitude[post_to_latlon$Abs_PM == PM_station_below]
