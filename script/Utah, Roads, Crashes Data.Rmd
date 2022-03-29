@@ -11,14 +11,9 @@ library("dplyr")
 library("tigris")
 library("ggplot2")
 library("sf")
-# For AOI and climateR
-library("lattice")
-library("raster")
-library("rasterVis")
-library("AOI")
-library("climateR")
 
 crash <- read.csv("../data-raw/RawCrashData2020.csv")
+stations <- read.csv("../data-raw/i_15_Flow_Data_2020.csv")
 ```
 
 
@@ -132,6 +127,31 @@ ut_plot
 ```
 
 ```{r}
+# plot of Stations
+ggplot() +
+  geom_point(
+    data = stations,
+    aes(x = Longitude, y = Latitude)
+  )
+```
+
+```{r}
+# Sf with NAD83 matches CRS of Utah map and Roads
+stat_spat <- sf::st_as_sf(
+  x = stations,
+  coords = c("Longitude", "Latitude"),
+  crs = 4269
+)
+```
+
+```{r}
+# Plot of spatial object crashes
+station_plot <- ggplot(stat_spat) +
+  geom_sf(shape = 3)
+station_plot
+```
+
+```{r}
 # plot of Utah, I-15, and Car Accidents
 all_plot <- ggplot(ut_map) +
   geom_sf(fill = NA) +
@@ -143,6 +163,11 @@ all_plot <- ggplot(ut_map) +
     data = i15_spat,
     color = "blue",
     alpha = 0.025
-  )
+  ) +
+  geom_sf(
+    data = stat_spat,
+          shape = 3,
+    color = "yellow",
+    )
 all_plot
 ```
