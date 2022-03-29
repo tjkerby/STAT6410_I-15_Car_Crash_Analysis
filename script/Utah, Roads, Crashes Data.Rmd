@@ -34,8 +34,9 @@ crash <- read.csv("../data-raw/RawCrashData2020.csv")
 # Coords: Lat and Long
 
 crash_i15 <- crash %>%
-  dplyr::select(., Route, Milepoint, Lat, Long) %>%
-  dplyr::filter(Route == "0015")
+  dplyr::filter(Route == "0015") %>%
+  dplyr::select(.,Lat, Long)
+
 ```
 
 ```{r}
