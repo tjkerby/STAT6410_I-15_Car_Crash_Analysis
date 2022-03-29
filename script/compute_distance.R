@@ -24,3 +24,5 @@ flow_data_dist <- do.call(rbind, lapply(flow_data_list, get_dist))
 
 #save data as RObject
 save(flow_data_dist, file= "data-raw/RObject/flow_data_dist.RData")
+
+
