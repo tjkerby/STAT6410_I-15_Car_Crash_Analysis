@@ -11,8 +11,10 @@ library("rasterVis")
 library("AOI")
 library("climateR")
 library(igraph)
+library(measurements)
 
 
+# Turns the I15 multiline strings into a single multlinestring
 roads <- tigris::primary_secondary_roads("Utah") %>%
   dplyr::filter(RTTYP %in% c("I"))
 roads_i15 <- roads[which(roads$FULLNAME == "I- 15"), ] %>%
@@ -44,18 +46,36 @@ road_plot <- ggplot() +
   )
 road_plot
 
-i15_poly <- st_cast(new_i15, "POLYGON")
 
-road_plot <- ggplot() +
-  geom_sf(
-    data = i15_poly,
-    color = "blue",
-    aes(geometry = geometry)
-  )
-road_plot
-###############################
 
-library(concaveman)
-i15_poly <- concaveman(new_i15) %>%
-  st_zm()
-plot(i15_poly)
+
+
+################################
+
+# Finds the point on I15 where the crash is closest
+
+i15_points <- st_cast(new_i15, "POINT")
+crash <- read.csv("./data-raw/RawCrashData2020.csv")
+crash_i15 <- crash %>%
+  dplyr::select(., Route, Milepoint, Lat, Long) %>%
+  dplyr::filter(Route == "0015")
+i15_spat <- sf::st_as_sf(
+  x = crash_i15,
+  coords = c("Long", "Lat"),
+  crs = 4269
+)
+
+# Finds the point on i15 closest to crash
+
+distances <- st_distance(i15_spat, i15_points)
+mins <- apply(distances, 1, which.min)
+new_crash <- i15_points[mins,]
+i15_spat$geometry <- new_crash$geometry
+
+# find distance from southern most point to all points
+south_point <- i15_points[which.min(st_coordinates(i15_points)[,2])[1],]
+# north_point <- i15_points[which.max(st_coordinates(i15_points)[,2])[1],]
+# This gives euclidean distance from south point to all points.
+point_distances <- st_distance(i15_spat, south_point)
+i15_spat$dist <- point_distances
+i15_spat$dist <-  conv_unit(i15_spat$dist, "m", "mi")
