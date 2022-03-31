@@ -2,7 +2,7 @@ get_dist <- function(df) {
   key <- key
 
   dist <- googleway::google_distance(
-    origins = list(c(37.05840, -113.5845)),
+    origins = list(c(37.000041, -113.622474)),
     destinations = list(c(
       df$Latitude,
       df$Longitude

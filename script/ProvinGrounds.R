@@ -17,6 +17,8 @@ library(measurements)
 # Turns the I15 multiline strings into a single multlinestring
 roads <- tigris::primary_secondary_roads("Utah") %>%
   dplyr::filter(RTTYP %in% c("I"))
+# roads_i15 <- roads[which(roads$FULLNAME == "I- 15"), ]
+
 roads_i15 <- roads[which(roads$FULLNAME == "I- 15"), ] %>%
   sf::st_cast(., "MULTILINESTRING")
 
@@ -28,26 +30,18 @@ my_comps <- components(my_igraph)$membership
 new_i15 <- roads_i15 %>%
   group_by(section = as.character({{my_comps}})) %>%
   summarise()
+new_i15$col <- 1:nrow(new_i15)
 
-road_plot <- ggplot() +
-  geom_sf(
-    data = new_i15,
-    color = "blue",
-    aes(geometry = geometry)
+
+all_plot <- ggplot(ut_map) +
+  geom_sf(fill = NA) +
+  geom_sf(aes(color = col),
+    data = new_i15
   )
-road_plot
+all_plot
 
 
-road_plot <- ggplot() +
-  geom_sf(
-    data = roads_i15,
-    color = "blue",
-    aes(geometry = geometry)
-  )
-road_plot
-
-
-
+rm(my_id_touches, my_igraph, roads, roads_i15, my_comps)
 
 
 ################################
@@ -65,12 +59,29 @@ i15_spat <- sf::st_as_sf(
   crs = 4269
 )
 
+rm(crash, crash_i15)
 # Finds the point on i15 closest to crash
 
-distances <- st_distance(i15_spat, i15_points)
+# distances <- st_distance(i15_spat, i15_points)
+# save(distances, file="./data-raw/crashPointDist.rdata")
+load("./data-raw/crashPointDist.rdata")
 mins <- apply(distances, 1, which.min)
-new_crash <- i15_points[mins,]
-i15_spat$geometry <- new_crash$geometry
+i15_spat$geometry <- i15_points[mins,]$geometry
+
+
+i15_points <- i15_points %>%
+  mutate(lat = st_coordinates(geometry)[,2]) %>%
+  arrange(lat)
+dists <- sapply(2:nrow(i15_points), function(i) {
+  dist <- st_distance(i15_points[i,], i15_points[i-1,])
+})
+i15_points$dist <- c(0, cumsum(dists))
+i15_points$lat <- NULL
+i15_points$section <- NULL
+
+i15_spat <- st_join(i15_spat, i15_points)
+i15_spat$dist <-  conv_unit(i15_spat$dist, "m", "mi")
+
 
 # find distance from southern most point to all points
 south_point <- i15_points[which.min(st_coordinates(i15_points)[,2])[1],]
