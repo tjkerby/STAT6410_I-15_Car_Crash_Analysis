@@ -38,4 +38,5 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 data-raw/crashPointDist.rdata
+data-raw/newi15.rdata
 .RDataTmp
