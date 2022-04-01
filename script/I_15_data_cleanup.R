@@ -82,8 +82,8 @@ calc_lat_lon <- function(pm, Abs_PM) {
 
 
 coords <- apply(flow[c("Postmile..Abs.")], 1, calc_lat_lon, Abs_PM)
-data <- as.data.frame(cbind(flow$ave_flow, t(coords)))
-colnames(data) <- c("Flow", "Longitude", "Latitude")
+data <- as.data.frame(cbind(flow$ave_flow, flow$Postmile..Abs., t(coords)))
+colnames(data) <- c("Flow", "Postmileage", "Longitude", "Latitude")
 
 min(post_to_latlon$Latitude)
 min(data$Latitude)

@@ -14,7 +14,6 @@ get_dist <- function(bottom_crash, flow_data) {
            crs = 4269)
   dist <- c()
   dist_station_south <- c()
-  i = 1
   for (i in 1:nrow(lat_data)) {
     if(i == 1) {
       new_dist <- sf::st_distance(bottom_crash, lat_data[i,])
