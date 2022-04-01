@@ -1,3 +1,4 @@
+library(ggmap)
 ggmapbbox <- function(map) {
   if (!inherits(map, "ggmap")) stop("map must be a ggmap object")
   # Extract the bounding box (in lat/lon) from the ggmap to a numeric vector, 
