@@ -11,6 +11,8 @@ library("dplyr")
 library("tigris")
 library("ggplot2")
 library("sf")
+library("ggmap")
+library(ggtech)
 
 crash <- read.csv("../data-raw/RawCrashData2020.csv")
 stations <- read.csv("../data-raw/i_15_Flow_Data_2020.csv")
@@ -167,7 +169,113 @@ all_plot <- ggplot(ut_map) +
   geom_sf(
     data = stat_spat,
           shape = 3,
-    color = "yellow",
+    color = "yellow"
     )
 all_plot
+```
+
+```{r}
+# car crashes and stations
+ggplot()+
+  geom_sf(
+    data = i15_spat,
+    color = "blue",
+    alpha = 0.025
+  ) +
+  geom_sf(
+    data = stat_spat,
+          shape = 3,
+    color = "yellow"
+    )
+```
+
+```{r}
+library(ggmap)
+
+tbbox <- sf::st_bbox(ut_map)
+names(tbbox) <- c("left", "bottom", "right", "top")
+samp_map <- ggmap::get_map(location = tbbox,
+                           maptype = "terrain",
+                           source = "stamen"
+)
+# map is slightly off 
+ggmap(samp_map) +
+  geom_sf(
+    data = roads_i15,
+    inherit.aes = F,
+    color = "red"
+  ) +
+  geom_sf(
+    data = i15_spat,
+    inherit.aes = F,
+    color = "blue",
+    alpha = 0.025
+  ) +
+  geom_sf(
+    data = stat_spat,
+    inherit.aes = F,
+    shape = 3,
+    color = "yellow",
+  )
+  
+roads_3857 <- sf::st_transform(roads_i15,3857)
+crash_3857 <- sf::st_transform(i15_spat,3857)
+station_3857 <- sf::st_transform(stat_spat,3857)
+ut_outline_3857 <- sf::st_transform(ut_map,3857)
+
+ggmapbbox <- function(map) {
+  if (!inherits(map, "ggmap")) stop("map must be a ggmap object")
+  # Extract the bounding box (in lat/lon) from the ggmap to a numeric vector, 
+  # and set the names to what sf::st_bbox expects:
+  map_bbox <- setNames(unlist(attr(map, "bb")), 
+                       c("ymin", "xmin", "ymax", "xmax"))
+  
+  # Coonvert the bbox to an sf polygon, transform it to 3857, 
+  # and convert back to a bbox (convoluted, but it works)
+  bbox_3857 <- st_bbox(st_transform(st_as_sfc(st_bbox(map_bbox, crs = 4326)), 3857))
+  
+  # Overwrite the bbox of the ggmap object with the transformed coordinates 
+  attr(map, "bb")$ll.lat <- bbox_3857["ymin"]
+  attr(map, "bb")$ll.lon <- bbox_3857["xmin"]
+  attr(map, "bb")$ur.lat <- bbox_3857["ymax"]
+  attr(map, "bb")$ur.lon <- bbox_3857["xmax"]
+  map
+}
+
+# final map
+terr_ut_3857 <- ggmapbbox(samp_map)
+
+ggmap(ut_map_3857) +
+  geom_sf(
+    data = roads_3857,
+    inherit.aes = FALSE,
+    fill = NA,
+    lwd = 1,
+    color = "red"
+  ) +
+  geom_sf(
+    data = crash_3857,
+    inherit.aes = FALSE,
+    color = "blue",
+    alpha = 0.05
+    ) +
+  geom_sf(
+    data = station_3857,
+    inherit.aes = FALSE,
+    shape = 3,
+    color = "yellow",
+    lwd = .75,
+  )
+```
+
+```{r}
+#save code
+
+save(roads_i15, file = "../data-raw/RObject/roads_i15")
+save(i15_spat, file = "../data-raw/RObject/i15_spat")
+save(stat_spat, file = "../data-raw/RObject/stat_spat")
+save(ut_map, file = "../data-raw/RObject/ut_map")
+save(samp_map,file = "../data-raw/RObject/samp_map")
+save(ut_outline_3857, file = "../data-raw/RObject/ut_outline_3857")
+save(terr_ut_3857,file ="../data-raw/RObject/ut_map_3857")
 ```

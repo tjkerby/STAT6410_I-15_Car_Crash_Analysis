@@ -1,3 +1,6 @@
+library(sf)
+library(dplyr)
+
 load("data-raw/RObject/flow_data.RData")
 crash <- read.csv("data-raw/RawCrashData2020.csv")
 
