@@ -9,7 +9,7 @@ library("viridis")
 library("gridExtra")
 library("gridtext")
 library("grid")
-library("cowplot")
+library("uniode")
 ################################################################################
 load("data-raw/RObject/roads_i15")
 load("data-raw/RObject/i15_spat")
@@ -33,21 +33,21 @@ all_plot <- ggmap(terr_ut_3857) +
     data = roads_3857,
     inherit.aes = FALSE,
     fill = NA,
-    lwd = 1.25,
+    lwd = 2,
     aes(color = "red"),
   ) +
   geom_sf(
     data = crash_3857,
     inherit.aes = FALSE,
     aes(color = "blue"),
-    alpha = 0.05
+    alpha = 0.075
   ) +
   geom_sf(
     data = station_3857,
     inherit.aes = FALSE,
     shape = 3,
     aes(color = "yellow"),
-    lwd = 1,
+    lwd = 2,
   ) +
   geom_sf(
     data = ut_outline_3857,
@@ -92,55 +92,17 @@ samp_map <- ggmap::get_map(
 
 ################################################################################
 I_15_line_3857 <- sf::st_transform(I_15_line, 3857)
-### Without Terrain Map and Utah Outline
-I_15_line_road <- ggplot() +
-  geom_sf(
-    data = roads_3857,
-    aes(color = "red"),
-    lwd = 1
-  ) +
-  geom_sf(
-    data = I_15_line_3857,
-    aes(color = "blue"),
-    linetype = "dashed",
-    lwd = 1
-  )
-
-I_15_line_road_fin <- I_15_line_road +
-  scale_color_identity(
-    name = "Legend",
-    breaks = c("red", "blue"),
-    labels = c("I-15 Road", "Projected I-15 Line"),
-    guide = "legend"
-  ) +
-  theme(
-    plot.title = element_text(size = 25, face = "bold.italic"),
-    axis.title.x = element_text(size = 14, face = "bold"),
-    axis.title.y = element_text(size = 14, face = "bold"),
-    legend.title = element_text(size = 10, face = "bold.italic"),
-    legend.text = element_text(size = 10, face = "bold.italic")
-  ) +
-  ggtitle(
-    " Actual I-15 vs Projected I-15"
-  ) +
-  xlab("Longitude") +
-  ylab("Latitude") +
-  ggeasy::easy_center_title() +
-  theme_void()
-
-I_15_line_road_fin
 ### WIthout Terrain map but with Utah outline
 I_15_line_road_o <- ggplot() +
   geom_sf(
     data = roads_3857,
     aes(color = "red"),
-    lwd = 1
+    lwd = 2
   ) +
   geom_sf(
     data = I_15_line_3857,
     aes(color = "blue"),
-    linetype = "dashed",
-    lwd = 1
+    lwd = 2
   ) +
   geom_sf(
     data = ut_outline_3857,
@@ -158,10 +120,8 @@ I_15_line_road_o_fin <- I_15_line_road_o +
   ) +
   theme(
     plot.title = element_text(size = 25, face = "bold.italic"),
-    axis.title.x = element_text(size = 14, face = "bold"),
-    axis.title.y = element_text(size = 14, face = "bold"),
-    legend.title = element_text(size = 10, face = "bold.italic"),
-    legend.text = element_text(size = 10, face = "bold.italic")
+    legend.title = element_text(size = 14, face = "bold.italic"),
+    legend.text = element_text(size = 14, face = "bold.italic")
   ) +
   ggtitle(
     " Actual I-15 vs Projected I-15"
@@ -169,50 +129,6 @@ I_15_line_road_o_fin <- I_15_line_road_o +
   ggeasy::easy_center_title()
 
 I_15_line_road_o_fin
-### With Terrain Map
-I_15_line_road_t <- ggmap(ut_map_3857) +
-  geom_sf(
-    data = roads_3857,
-    aes(color = "red"),
-    inherit.aes = FALSE,
-    lwd = 1
-  ) +
-  geom_sf(
-    data = I_15_line_3857,
-    aes(color = "blue"),
-    inherit.aes = FALSE,
-    linetype = "dashed",
-    lwd = 1
-  ) +
-  geom_sf(
-    data = ut_outline_3857,
-    inherit.aes = FALSE,
-    fill = NA
-  )
-
-I_15_line_road_t_fin <- I_15_line_road_t +
-  scale_color_identity(
-    name = "Legend",
-    breaks = c("red", "blue"),
-    labels = c("I-15 Road", "Projected I-15 Line"),
-    guide = "legend"
-  ) +
-  theme(
-    plot.title = element_text(size = 25, face = "bold.italic"),
-    axis.title.x = element_text(size = 14, face = "bold"),
-    axis.title.y = element_text(size = 14, face = "bold"),
-    legend.title = element_text(size = 10, face = "bold.italic"),
-    legend.text = element_text(size = 10, face = "bold.italic")
-  ) +
-  ggtitle(
-    "Actual I-15 vs Projected I-15"
-  ) +
-  xlab("Longitude") +
-  ylab("Latitude") +
-  ggeasy::easy_center_title()
-
-I_15_line_road_t_fin
-
 ################################################################################
 
 I_15_line_sub <- sf::st_crop(I_15_line, xmin = -111.5, ymin = 39.2, xmax = -112.5, ymax = 40.2)
@@ -222,7 +138,7 @@ stat_spat_sub <- sf::st_crop(stat_spat, xmin = -111.5, ymin = 39.2, xmax = -112.
 bbox_sub <- sf::st_bbox(roads_i15_sub)
 
 ### SUBSET BOUNDING BOX
-I_15_line_road +
+I_15_line_road_o_fin +
   ggspatial::layer_spatial(bbox_sub, fill = NA)
 ################################################################################
 I_15_line_sub_3857 <- sf::st_transform(I_15_line_sub, 3857)
@@ -233,38 +149,36 @@ I_15_line_road_sub <- ggplot() +
   geom_sf(
     data = I_15_line_sub_3857,
     aes(color = "red"),
-    lwd = 1
+    lwd = 2
   ) +
   geom_sf(
     data = roads_i15_sub_3857,
     aes(color = "blue"),
-    lwd = 1
+    lwd = 2
   ) +
   geom_sf(
     data = stat_spat_sub_3857,
-    aes(color = "black")
+    aes(color = "darkgrey"),
+    shape = "\u2500",
+    lwd = 12
   )
 
 I_15_line_road_sub_fin <- I_15_line_road_sub +
   theme_void() +
   scale_color_identity(
     name = "Legend",
-    breaks = c("red", "blue", "black"),
+    breaks = c("red", "blue", "darkgrey"),
     labels = c("I-15 Road", "Projected I-15 Line", "Stations"),
     guide = "legend"
   ) +
   theme(
     plot.title = element_text(size = 25, face = "bold.italic"),
-    axis.title.x = element_text(size = 14, face = "bold"),
-    axis.title.y = element_text(size = 14, face = "bold"),
-    legend.title = element_text(size = 10, face = "bold.italic"),
-    legend.text = element_text(size = 10, face = "bold.italic")
+    legend.title = element_text(size = 14, face = "bold.italic"),
+    legend.text = element_text(size = 14, face = "bold.italic")
   ) +
   ggtitle(
     " Actual I-15 vs Projected I-15"
   ) +
-  xlab("Longitude") +
-  ylab("Latitude") +
   ggeasy::easy_center_title()
 I_15_line_road_sub_fin
 ################################################################################
@@ -348,3 +262,4 @@ grid.arrange(
   grobs = plot_list,
   nrow = 1
 )
+fin_all_plot
