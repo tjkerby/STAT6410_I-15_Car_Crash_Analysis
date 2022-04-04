@@ -14,7 +14,6 @@ flow_n <- subset(flow_n,
 )
 
 
-
 # Remove bad quality stations
 flow_n <- flow_n[flow_n$X..Observed > 75, ]
 flow_s <- flow_s[flow_s$X..Observed > 75, ]
@@ -55,6 +54,11 @@ flow$ave_flow <- (flow$flow.x + flow$flow.y) / 2
 ##### Covert from Postmile Abs to Lat Lon #####
 post_to_latlon <- post_to_latlon[!duplicated(post_to_latlon[c("Abs_PM")]), ]
 
+test <- st_as_sf(post_to_latlon,
+                 coords = c("Longitude", "Latitude"),
+                 crs = 4269)
+ggplot(test) + geom_sf(aes(col = Abs_PM))
+
 pm <- 10.5
 Abs_PM <- array(post_to_latlon$Abs_PM)
 
@@ -68,8 +72,8 @@ calc_lat_lon <- function(pm, Abs_PM) {
   above_diff <- PM_station_above - pm
   below_diff <- pm - PM_station_below
 
-  above_weight <- above_diff / (above_diff + below_diff)
-  below_weight <- below_diff / (above_diff + below_diff)
+  above_weight <- below_diff / (above_diff + below_diff)
+  below_weight <- above_diff / (above_diff + below_diff)
 
   new_longitude <- above_weight *
     post_to_latlon$Longitude[post_to_latlon$Abs_PM == PM_station_above] +
@@ -82,8 +86,8 @@ calc_lat_lon <- function(pm, Abs_PM) {
 
 
 coords <- apply(flow[c("Postmile..Abs.")], 1, calc_lat_lon, Abs_PM)
-data <- as.data.frame(cbind(flow$ave_flow, t(coords)))
-colnames(data) <- c("Flow", "Longitude", "Latitude")
+data <- as.data.frame(cbind(flow$ave_flow, flow$Postmile..Abs., t(coords)))
+colnames(data) <- c("Flow", "Postmileage", "Longitude", "Latitude")
 
 min(post_to_latlon$Latitude)
 min(data$Latitude)
@@ -99,8 +103,8 @@ max(data$Longitude)
 
 data <- data %>%
   dplyr::mutate(
-    Longitude = round(Longitude, 3),
-    Latitude = round(Latitude, 3)
+    Longitude = round(Longitude, 4),
+    Latitude = round(Latitude, 4)
   ) %>%
   group_by(Longitude, Latitude) %>%
   summarise(Flow = mean(Flow), .groups = "drop")
