@@ -23,8 +23,8 @@ crashes$distance <- distances[["dist"]]
 crashes$dist_to_station <- distances[["segment_dista"]]
 crashes <- crashes[!is.na(crashes$distance), ]
 
+# Ensure that things were projected correctly
 library(ggplot2)
-par(mfrow = c(1,2))
 ggplot(crashes) + geom_sf(aes(col = distance))
 ggplot(crashes) + geom_sf(aes(col = dist_to_station))
 ggplot(station_points) + geom_sf(aes(col = as.numeric(dist_to_bottom)))
