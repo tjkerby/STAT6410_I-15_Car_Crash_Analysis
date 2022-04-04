@@ -1,3 +1,5 @@
+library(ggplot2)
+library(dplyr)
 load("./data-raw/RObject/station_points_final.RData")
 
 # Estimated
@@ -81,3 +83,58 @@ chisq.test(x = station_points$num_crashes,
            p = station_points$num_crashes_exp_dist)
 chisq.test(x = round(station_points$num_crashes/station_points$Flow * 20) + 1,
            p = station_points$num_crashes_exp_both)
+
+
+#################
+# Generalizes the expected counts function
+
+expected_count <- function(data, alpha=.5,
+                           var1 = "Flow",
+                           var2 = "range",
+                           counts = "num_crashes") {
+  if (!(0 <= alpha && alpha <= 1)) {
+    stop("alpha needs to be between 0 and 1")
+  }
+  
+  total_counts <- sum(data[,counts])
+  prop_var1 <- as.vector(data[,var1]) / sum(data[,var1])
+  prop_var2 <- as.vector(data[,var2]) / sum(data[,var2])
+  new_prop <- alpha * prop_var1 + (1 - alpha) * prop_var2
+  as.vector(total_counts * new_prop)
+}
+
+station_points$exp_flow <- expected_count(station_points,
+                                          alpha = 1)$Flow
+station_points$exp_range <- expected_count(station_points,
+                                           alpha = 0)$Flow
+station_points$exp_both <- expected_count(station_points,
+                                          alpha = .5)$Flow
+station_points$exp_maj_flow <- expected_count(station_points,
+                                              alpha = .75)$Flow
+
+plotting_points <- station_points %>%
+  dplyr::select(num_crashes, dist_to_bottom,
+                exp_flow, exp_range,
+                exp_both, exp_maj_flow) %>%
+  tidyr::pivot_longer(cols = c(num_crashes,
+                               exp_flow,
+                               exp_range,
+                               exp_both,
+                               exp_maj_flow))
+
+ggplot(data = plotting_points, aes(x = dist_to_bottom,
+                                  y = value,
+                                  color = name)) +
+  geom_point()
+  
+
+
+# Start chi square tests
+chisq.test(x = station_points$num_crashes,
+           p = station_points$exp_flow/sum(station_points$exp_flow))
+chisq.test(x = station_points$num_crashes,
+           p = station_points$exp_range/sum(station_points$exp_range))
+chisq.test(x = station_points$num_crashes,
+           p = station_points$exp_both/sum(station_points$exp_both))
+chisq.test(x = station_points$num_crashes,
+           p = station_points$exp_maj_flow/sum(station_points$exp_maj_flow))
