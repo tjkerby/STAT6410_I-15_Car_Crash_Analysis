@@ -9,7 +9,7 @@ library("viridis")
 library("gridExtra")
 library("gridtext")
 library("grid")
-library("uniode")
+library("RColorBrewer")
 ################################################################################
 load("data-raw/RObject/roads_i15")
 load("data-raw/RObject/i15_spat")
@@ -27,6 +27,8 @@ crash_3857 <- sf::st_transform(i15_spat, 3857)
 station_3857 <- sf::st_transform(stat_spat, 3857)
 ut_outline_3857 <- sf::st_transform(ut_map, 3857)
 
+
+brew_col <- brewer.pal(8, "Dark2")
 # Terrain Plot of Utah,I15, Car Accidents, and stations
 all_plot <- ggmap(terr_ut_3857) +
   geom_sf(
@@ -34,32 +36,34 @@ all_plot <- ggmap(terr_ut_3857) +
     inherit.aes = FALSE,
     fill = NA,
     lwd = 2,
-    aes(color = "red"),
+    aes(color = brew_col[4]),
   ) +
   geom_sf(
     data = crash_3857,
     inherit.aes = FALSE,
-    aes(color = "blue"),
+    aes(color = brew_col[3]),
     alpha = 0.075
   ) +
   geom_sf(
     data = station_3857,
     inherit.aes = FALSE,
-    shape = 3,
-    aes(color = "yellow"),
-    lwd = 2,
+    shape = "\u2500",
+    aes(color = brew_col[6]),
+    lwd = 5,
   ) +
   geom_sf(
     data = ut_outline_3857,
     inherit.aes = FALSE,
-    fill = NA
+    fill = NA,
+    color = "black",
+    lwd = 1.25
   )
 
 
 fin_all_plot <- all_plot +
   scale_color_identity(
     name = "Legend",
-    breaks = c("red", "blue", "yellow"),
+    breaks = c(brew_col[4], brew_col[3], brew_col[6]),
     labels = c("I-15", "Car Accident", "Station"),
     guide = "legend"
   ) +
@@ -92,37 +96,43 @@ samp_map <- ggmap::get_map(
 
 ################################################################################
 I_15_line_3857 <- sf::st_transform(I_15_line, 3857)
-### WIthout Terrain map but with Utah outline
+### Without Terrain map but with Utah outline
 I_15_line_road_o <- ggplot() +
   geom_sf(
     data = roads_3857,
-    aes(color = "red"),
+    aes(color = brew_col[4]),
     lwd = 2
   ) +
   geom_sf(
     data = I_15_line_3857,
-    aes(color = "blue"),
+    aes(color = brew_col[2]),
     lwd = 2
   ) +
   geom_sf(
     data = ut_outline_3857,
+    color = "black",
     inherit.aes = FALSE,
-    fill = NA
+    fill = NA,
+    lwd = 1.25
   )
 
 I_15_line_road_o_fin <- I_15_line_road_o +
-  theme_void() +
+  theme_bw() +
   scale_color_identity(
     name = "Legend",
-    breaks = c("red", "blue"),
+    breaks = c(brew_col[4], brew_col[2]),
     labels = c("I-15 Road", "Projected I-15 Line"),
     guide = "legend"
   ) +
   theme(
     plot.title = element_text(size = 25, face = "bold.italic"),
+    axis.title.x = element_text(size = 14, face = "bold"),
+    axis.title.y = element_text(size = 14, face = "bold"),
     legend.title = element_text(size = 14, face = "bold.italic"),
     legend.text = element_text(size = 14, face = "bold.italic")
   ) +
+  xlab("Longitude") +
+  ylab("Latitude") +
   ggtitle(
     " Actual I-15 vs Projected I-15"
   ) +
@@ -139,7 +149,10 @@ bbox_sub <- sf::st_bbox(roads_i15_sub)
 
 ### SUBSET BOUNDING BOX
 I_15_line_road_o_fin +
-  ggspatial::layer_spatial(bbox_sub, fill = NA)
+  ggspatial::layer_spatial(bbox_sub,
+                           fill = NA,
+                           lwd = 1,
+                           color = "black")
 ################################################################################
 I_15_line_sub_3857 <- sf::st_transform(I_15_line_sub, 3857)
 roads_i15_sub_3857 <- sf::st_transform(roads_i15_sub, 3857)
@@ -147,35 +160,39 @@ stat_spat_sub_3857 <- sf::st_transform(stat_spat_sub, 3857)
 
 I_15_line_road_sub <- ggplot() +
   geom_sf(
-    data = I_15_line_sub_3857,
-    aes(color = "red"),
+    data = roads_i15_sub_3857,
+    aes(color = brew_col[4]),
     lwd = 2
   ) +
   geom_sf(
-    data = roads_i15_sub_3857,
-    aes(color = "blue"),
+    data = I_15_line_sub_3857,
+    aes(color = brew_col[1]),
     lwd = 2
   ) +
   geom_sf(
     data = stat_spat_sub_3857,
-    aes(color = "darkgrey"),
+    aes(color = brew_col[6]),
     shape = "\u2500",
     lwd = 12
   )
 
 I_15_line_road_sub_fin <- I_15_line_road_sub +
-  theme_void() +
+  theme_bw() +
   scale_color_identity(
     name = "Legend",
-    breaks = c("red", "blue", "darkgrey"),
+    breaks = c(brew_col[4], brew_col[1], brew_col[6]),
     labels = c("I-15 Road", "Projected I-15 Line", "Stations"),
     guide = "legend"
-  ) +
+  )+
   theme(
     plot.title = element_text(size = 25, face = "bold.italic"),
+    axis.title.x = element_text(size = 14, face = "bold"),
+    axis.title.y = element_text(size = 14, face = "bold"),
     legend.title = element_text(size = 14, face = "bold.italic"),
     legend.text = element_text(size = 14, face = "bold.italic")
   ) +
+  xlab("Longitude") +
+  ylab("Latitude") +
   ggtitle(
     " Actual I-15 vs Projected I-15"
   ) +
@@ -185,10 +202,7 @@ I_15_line_road_sub_fin
 load("./data-raw/RObject/station_points_final.RData")
 
 station_points_sub <- sf::st_crop(station_points, xmin = -111.5, ymin = 40, xmax = -112, ymax = 41)
-# 263 to 5783
-#,plot.margin=unit(c(1,10,1,0),"cm")
-#,plot.margin = unit(c(1,0,1,0),"cm")
-#,plot.margin=unit(c(1,0,1,-15),"cm")
+
 flow_plot <- ggplot() +
   geom_sf(station_points,
     mapping = aes(color = Flow/100)
@@ -208,7 +222,7 @@ flow_plot <- ggplot() +
   guides(colour = guide_colourbar(title.position="top", title.hjust = 0.5),
          size = guide_legend(title.position="top", title.hjust = 0.5)
          ) +
-  scale_color_viridis(option = "magma")
+  scale_color_distiller(palette = "Dark2")
 
 # number of car crashes
 num_crashes_plot <- ggplot() +
@@ -230,7 +244,7 @@ num_crashes_plot <- ggplot() +
   guides(colour = guide_colourbar(title.position="top", title.hjust = 0.5),
          size = guide_legend(title.position="top", title.hjust = 0.5)
   ) +
-  scale_color_viridis(option = "magma")
+  scale_color_distiller(palette = "Dark2")
 
 # normalized plot
 normalized_crashes_plot <- ggplot() +
@@ -252,7 +266,7 @@ normalized_crashes_plot <- ggplot() +
   guides(colour = guide_colourbar(title.position="top", title.hjust = 0.5),
          size = guide_legend(title.position="top", title.hjust = 0.5)
   ) +
-  scale_color_viridis(option = "magma")
+  scale_color_distiller(palette = "Dark2")
 
 plot_list <- list(flow_plot,
                   num_crashes_plot,
@@ -262,4 +276,3 @@ grid.arrange(
   grobs = plot_list,
   nrow = 1
 )
-fin_all_plot
