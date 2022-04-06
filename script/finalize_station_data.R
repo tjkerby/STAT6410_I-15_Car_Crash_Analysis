@@ -29,5 +29,8 @@ station_points$range <- sapply(1:nrow(station_points), function(i) {
   }
 })
 station_points$distance <- NULL
+station_points <- as.data.frame(station_points)
+station_points$geometry <- NULL
+
 
 save(station_points, file="./data-raw/RObject/station_points_final.RData")

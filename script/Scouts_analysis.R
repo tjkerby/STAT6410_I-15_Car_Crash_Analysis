@@ -1,140 +1,246 @@
 library(ggplot2)
+library(ggthemes)
+library(ggeasy)
 library(dplyr)
+library(viridis)
+library(RColorBrewer)
 load("./data-raw/RObject/station_points_final.RData")
 
-# Estimated
-crash_density <- ksmooth(station_points$dist_to_bottom,
-                         station_points$num_crashes/sum(station_points$num_crashes),
-                         "normal",
-                         40000,)
-
-# expected based on flow
-station_points$expected <- sum(station_points$num_crashes)*
-  (station_points$Flow/sum(station_points$Flow))
-station_points$expected_norm <- station_points$expected/station_points$Flow
-
-plot(station_points$dist_to_bottom,
-     station_points$num_crashes)
-points(station_points$dist_to_bottom,
-       station_points$expected, type = "p", col="red")
-lines(crash_density)
-
-
-# crashes by flow, statndardized by distance
-station_points$expected_1 <- (station_points$num_crashes/station_points$Flow) *
-  (station_points$range / sum(station_points$range))
-
-station_points$normalized_crashes_1 <- station_points$normalized_crashes / sum(station_points$normalized_crashes)
-station_points$expected_1 <- station_points$expected_1 / sum(station_points$expected_1)
-
-plot(station_points$dist_to_bottom,
-     station_points$normalized_crashes_1,
-     ylim=c(0,.4))
-points(station_points$dist_to_bottom,
-       station_points$expected_1, col="red",
-       ylim=c(0,.4))
-
-
-# Expected number of crashes by flow
-total_crashes <- sum(station_points$num_crashes)
-prop_flow <- station_points$Flow / sum(station_points$Flow)
-station_points$num_crashes_exp_flow <- total_crashes * prop_flow
-station_points$num_crashes_exp_flow <- station_points$num_crashes_exp_flow/sum(station_points$num_crashes_exp_flow)
-
-# expected number of crashes by distance
-prop_dist <- station_points$range / sum(station_points$range)
-station_points$num_crashes_exp_dist <- total_crashes * prop_dist
-station_points$num_crashes_exp_dist <- station_points$num_crashes_exp_dist/sum(station_points$num_crashes_exp_dist)
-
-# expected number of crashes by flow and distance
-station_points$num_crashes_exp_both <- station_points$num_crashes / mean(station_points$Flow)
-station_points$num_crashes_exp_both <- station_points$num_crashes_exp_both/sum(station_points$num_crashes_exp_both)
-
-ylim <- max(c(station_points$num_crashes/sum(station_points$num_crashes),
-              station_points$num_crashes_exp_both,
-              station_points$num_crashes_exp_dist,
-              station_points$num_crashes_exp_flow))
-
-plot(station_points$dist_to_bottom,
-     station_points$num_crashes/sum(station_points$num_crashes),
-     ylim = c(0, ylim))
-points(station_points$dist_to_bottom,
-       station_points$num_crashes_exp_flow,
-       col = "red",
-       ylim = c(0, ylim))
-points(station_points$dist_to_bottom,
-       station_points$num_crashes_exp_dist,
-       col = "blue",
-       pch = 20,
-       ylim = c(0, ylim))
-# points(station_points$dist_to_bottom,
-#        station_points$num_crashes_exp_both,
-#        col = "Green",
-#        pch = 10,
-#        ylim = c(0, ylim))
-lines(crash_density)
-
-
-#############
-# Start chi square tests
-chisq.test(x = station_points$num_crashes,
-           p = station_points$num_crashes_exp_flow)
-chisq.test(x = station_points$num_crashes,
-           p = station_points$num_crashes_exp_dist)
-chisq.test(x = round(station_points$num_crashes/station_points$Flow * 20) + 1,
-           p = station_points$num_crashes_exp_both)
+station_points <- dplyr::arrange(station_points, dist_to_bottom)
 
 
 #################
 # Generalizes the expected counts function
 
-expected_count <- function(data, alpha=.5,
+expected_count <- function(data, alpha = .5,
                            var1 = "Flow",
                            var2 = "range",
                            counts = "num_crashes") {
   if (!(0 <= alpha && alpha <= 1)) {
     stop("alpha needs to be between 0 and 1")
   }
-  
-  total_counts <- sum(data[,counts])
-  prop_var1 <- as.vector(data[,var1]) / sum(data[,var1])
-  prop_var2 <- as.vector(data[,var2]) / sum(data[,var2])
+
+  total_counts <- sum(data[, counts])
+  prop_var1 <- as.vector(data[, var1]) / sum(data[, var1])
+  prop_var2 <- as.vector(data[, var2]) / sum(data[, var2])
   new_prop <- alpha * prop_var1 + (1 - alpha) * prop_var2
-  as.vector(total_counts * new_prop)
+  total_counts * new_prop
 }
 
-station_points$exp_flow <- expected_count(station_points,
-                                          alpha = 1)$Flow
-station_points$exp_range <- expected_count(station_points,
-                                           alpha = 0)$Flow
-station_points$exp_both <- expected_count(station_points,
-                                          alpha = .5)$Flow
-station_points$exp_maj_flow <- expected_count(station_points,
-                                              alpha = .75)$Flow
+# gets the expected number of crashes by flow
+station_points$exp_flow <- expected_count(
+  station_points,
+  alpha = 1
+)
 
+
+# formats data better for plotting
 plotting_points <- station_points %>%
-  dplyr::select(num_crashes, dist_to_bottom,
-                exp_flow, exp_range,
-                exp_both, exp_maj_flow) %>%
-  tidyr::pivot_longer(cols = c(num_crashes,
-                               exp_flow,
-                               exp_range,
-                               exp_both,
-                               exp_maj_flow))
+  dplyr::select(
+    num_crashes, dist_to_bottom,
+    exp_flow, Flow
+  ) %>%
+  tidyr::pivot_longer(cols = c(
+    num_crashes,
+    exp_flow
+  ))
 
-ggplot(data = plotting_points, aes(x = dist_to_bottom,
-                                  y = value,
-                                  color = name)) +
-  geom_point()
-  
+# points for notable cities
+cities_x <- c(8, 59, 300, 339, 253, 167)
+cities_x <- cities_x * 1609.34
+cities_name <- c("St. George", "Ceader City", "SLC", "Ogden", "Spanish Fork", "Nephi")
 
+colors <- brewer.pal(8, "Dark2")
+
+pdf("./figures/actualVSexpectedCrashes.pdf", width = 18, height = 10)
+# Makes the plot of actual vs expected number of crashes
+ggplot(data = plotting_points, aes(
+  x = dist_to_bottom,
+  y = value,
+  color = name,
+  size = Flow,
+  # shape = name
+)) +
+  scale_color_manual(values = c(colors[5], colors[6]),
+                     labels = c("Expected", "Actual")) +
+  geom_point() +
+  theme_bw() +
+  theme(
+    plot.title = element_text(size = 35, face = "bold.italic"),
+    axis.title.x = element_text(size = 24, face = "bold"),
+    axis.title.y = element_text(size = 24, face = "bold"),
+    legend.title = element_text(size = 20, face = "bold.italic"),
+    legend.text = element_text(size = 20, face = "bold.italic")
+  ) +
+  labs(title = "Actual VS Expected Number of Crashes",
+       y = "Number of Crashes",
+       x = "Distance Along I-15 (m)",
+       size = "Flow",
+       color = "Crash Type") +
+  easy_center_title() +
+  geom_vline(xintercept = cities_x,
+             alpha = .7,
+             linetype = "dotted") +
+  annotate("text",
+           x = cities_x,
+           y = rep(275, length(cities_x)),
+           label = cities_name)
+dev.off()
+
+
+
+# Plots range by crashes normalized by flow
+pdf("./figures/norm_crashes_by_range.pdf", width = 18, height = 10)
+ggplot(station_points,
+       aes(x = log(range),
+           y = normalized_crashes)) +
+  geom_point(size = 4) +
+  theme_bw() +
+  theme(
+    plot.title = element_text(size = 35, face = "bold.italic"),
+    axis.title.x = element_text(size = 24, face = "bold"),
+    axis.title.y = element_text(size = 24, face = "bold"),
+    legend.title = element_text(size = 20, face = "bold.italic"),
+    legend.text = element_text(size = 20, face = "bold.italic"),
+    legend.position = "none"
+  ) +
+  labs(title = "Crashes/Flow by Range",
+       y = "Crashes / Flow",
+       x = "Log(Range)",
+       size = FALSE,
+       color = FALSE) +
+  easy_center_title()
+dev.off()
 
 # Start chi square tests
-chisq.test(x = station_points$num_crashes,
-           p = station_points$exp_flow/sum(station_points$exp_flow))
-chisq.test(x = station_points$num_crashes,
-           p = station_points$exp_range/sum(station_points$exp_range))
-chisq.test(x = station_points$num_crashes,
-           p = station_points$exp_both/sum(station_points$exp_both))
-chisq.test(x = station_points$num_crashes,
-           p = station_points$exp_maj_flow/sum(station_points$exp_maj_flow))
+chisq.test(
+  x = station_points$num_crashes,
+  p = station_points$exp_flow / sum(station_points$exp_flow)
+)
+
+
+# Just look at the wasatch front area
+sub_points <- station_points[25:(nrow(station_points)-5),]
+sub_points$exp_flow <- expected_count(sub_points, 1)
+
+# formats data better for plotting
+plotting_points <- sub_points %>%
+  dplyr::select(
+    num_crashes, dist_to_bottom,
+    exp_flow, Flow
+  ) %>%
+  tidyr::pivot_longer(cols = c(
+    num_crashes,
+    exp_flow
+  ))
+
+# points for notable cities
+cities_x <- c(300, 339, 253)
+cities_x <- cities_x * 1609.34
+cities_name <- c("SLC", "Ogden", "Spanish Fork")
+
+colors <- brewer.pal(8, "Dark2")
+
+pdf("./figures/sub_plot_actual_expected.pdf", width = 18, height = 10)
+# Makes the plot of actual vs expected number of crashes
+ggplot(data = plotting_points, aes(
+  x = dist_to_bottom,
+  y = value,
+  color = name,
+  size = Flow
+)) +
+  scale_color_manual(values = c(colors[5], colors[6]),
+                     labels = c("Expected", "Actual")) +
+  geom_point() +
+  theme_bw() +
+  theme(
+    plot.title = element_text(size = 35, face = "bold.italic"),
+    axis.title.x = element_text(size = 24, face = "bold"),
+    axis.title.y = element_text(size = 24, face = "bold"),
+    legend.title = element_text(size = 20, face = "bold.italic"),
+    legend.text = element_text(size = 20, face = "bold.italic")
+  ) +
+  labs(title = "Actual VS Expected Number of Crashes",
+       y = "Number of Crashes",
+       x = "Distance Along I-15 (m)",
+       size = "Flow",
+       color = "Crash Type") +
+  easy_center_title() +
+  geom_vline(xintercept = cities_x,
+             alpha = .7,
+             linetype = "dotted") +
+  annotate("text",
+           x = cities_x,
+           y = rep(275, length(cities_x)),
+           label = cities_name)
+dev.off()
+
+
+# Chi-square test
+chisq.test(
+  x = sub_points$num_crashes,
+  p = sub_points$exp_flow / sum(sub_points$exp_flow)
+)
+
+# smooth the flow
+smooth_flow <- smooth.spline(sub_points$dist_to_bottom,
+                             sub_points$Flow,
+                             df = 20)
+plot(sub_points$dist_to_bottom,
+     sub_points$Flow)
+lines(smooth_flow, col="red")
+sub_points$smooth_flow <- predict(smooth_flow,
+                                  sub_points$dist_to_bottom)$y
+sub_points$exp_flow_s <- expected_count(sub_points,
+                                        1,
+                                        "smooth_flow")
+
+# Plots new flow expected counts
+# Makes the plot of actual vs expected number of crashes
+plotting_points <- sub_points %>%
+  dplyr::select(
+    num_crashes, dist_to_bottom,
+    exp_flow_s, smooth_flow
+  ) %>%
+  tidyr::pivot_longer(cols = c(
+    num_crashes,
+    exp_flow_s
+  ))
+
+ggplot(data = plotting_points, aes(
+  x = dist_to_bottom,
+  y = value,
+  color = name,
+  size = smooth_flow
+)) +
+  scale_color_manual(values = c(colors[5], colors[6]),
+                     labels = c("Expected", "Actual")) +
+  geom_point() +
+  theme_bw() +
+  theme(
+    plot.title = element_text(size = 35, face = "bold.italic"),
+    axis.title.x = element_text(size = 24, face = "bold"),
+    axis.title.y = element_text(size = 24, face = "bold"),
+    legend.title = element_text(size = 20, face = "bold.italic"),
+    legend.text = element_text(size = 20, face = "bold.italic")
+  ) +
+  labs(title = "Actual VS Expected Number of Crashes",
+       y = "Number of Crashes",
+       x = "Distance Along I-15 (m)",
+       size = "Flow",
+       color = "Crash Type") +
+  easy_center_title() +
+  geom_vline(xintercept = cities_x,
+             alpha = .7,
+             linetype = "dotted") +
+  annotate("text",
+           x = cities_x,
+           y = rep(275, length(cities_x)),
+           label = cities_name)
+
+
+# Chi-square test
+chisq.test(
+  x = sub_points$num_crashes,
+  p = sub_points$exp_flow_s / sum(sub_points$exp_flow_s)
+)
