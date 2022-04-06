@@ -276,3 +276,32 @@ grid.arrange(
   grobs = plot_list,
   nrow = 1
 )
+################################################################################
+# KENNETH LOOK HERE :)
+I_15_line_sub2 <- sf::st_crop(I_15_line, xmin = -112.3, ymin = 39, xmax = -112.15, ymax = 39.2)
+roads_i15_sub2 <- sf::st_crop(roads_i15, xmin = -112.3, ymin = 39, xmax = -112.15, ymax = 39.2)
+stat_spat_sub2 <- sf::st_crop(stat_spat, xmin = -112.3, ymin = 39, xmax = -112.15, ymax = 39.2)
+crash_sub2 <- sf::st_crop(i15_spat, xmin = -112.3, ymin = 39, xmax = -112.15, ymax = 39.2)
+projected_acc2_sub2 <- sf::st_crop(projected_acc2 ,xmin = -112.3, ymin = 39, xmax = -112.15, ymax = 39.2)
+
+ggplot() +
+  geom_sf(
+    data = roads_i15_sub2,
+    aes(color = brew_col[4]),
+    lwd = .5
+  )+
+  geom_sf(
+    data = crash_sub2,
+    aes(color = brew_col[6]),
+    lwd = 1
+  ) +
+  geom_sf(
+    data = I_15_line_sub2,
+    aes(color = brew_col[1]),
+    lwd = 1
+  ) +
+  geom_sf(
+    data = projected_acc2_sub2,
+    aes(color = brew_col[3]),
+    lwd = 1
+  )
