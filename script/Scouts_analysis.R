@@ -48,7 +48,7 @@ plotting_points <- station_points %>%
 # points for notable cities
 cities_x <- c(8, 59, 300, 339, 253, 167)
 cities_x <- cities_x * 1609.34
-cities_name <- c("St. George", "Ceader City", "SLC", "Ogden", "Spanish Fork", "Nephi")
+cities_name <- c("St. George", "Cedar City", "SLC", "Ogden", "Spanish Fork", "Nephi")
 
 colors <- brewer.pal(8, "Dark2")
 
@@ -67,16 +67,16 @@ ggplot(data = plotting_points, aes(
   theme_bw() +
   theme(
     plot.title = element_text(size = 35, face = "bold.italic"),
-    axis.title.x = element_text(size = 24, face = "bold"),
-    axis.title.y = element_text(size = 24, face = "bold"),
-    legend.title = element_text(size = 20, face = "bold.italic"),
-    legend.text = element_text(size = 20, face = "bold.italic")
+    axis.title.x = element_text(size = 25, face = "bold"),
+    axis.title.y = element_text(size = 25, face = "bold"),
+    legend.title = element_text(size = 25, face = "bold.italic"),
+    legend.text = element_text(size = 25, face = "bold.italic")
   ) +
   labs(title = "Actual VS Expected Number of Crashes",
        y = "Number of Crashes",
        x = "Distance Along I-15 (m)",
        size = "Flow",
-       color = "Crash Type") +
+       color = "Type") +
   easy_center_title() +
   geom_vline(xintercept = cities_x,
              alpha = .7,
@@ -84,7 +84,9 @@ ggplot(data = plotting_points, aes(
   annotate("text",
            x = cities_x,
            y = rep(275, length(cities_x)),
-           label = cities_name)
+           label = cities_name,
+           size = 7) +
+  guides(color = guide_legend(override.aes = list(size = 5)))
 dev.off()
 
 
@@ -135,9 +137,9 @@ plotting_points <- sub_points %>%
   ))
 
 # points for notable cities
-cities_x <- c(300, 339, 253)
+cities_x <- c(300, 339, 253, 284, 332)
 cities_x <- cities_x * 1609.34
-cities_name <- c("SLC", "Ogden", "Spanish Fork")
+cities_name <- c("SLC", "Ogden", "Spanish Fork", "Lehi", "Layton")
 
 colors <- brewer.pal(8, "Dark2")
 
@@ -155,16 +157,16 @@ ggplot(data = plotting_points, aes(
   theme_bw() +
   theme(
     plot.title = element_text(size = 35, face = "bold.italic"),
-    axis.title.x = element_text(size = 24, face = "bold"),
-    axis.title.y = element_text(size = 24, face = "bold"),
-    legend.title = element_text(size = 20, face = "bold.italic"),
-    legend.text = element_text(size = 20, face = "bold.italic")
+    axis.title.x = element_text(size = 25, face = "bold"),
+    axis.title.y = element_text(size = 25, face = "bold"),
+    legend.title = element_text(size = 25, face = "bold.italic"),
+    legend.text = element_text(size = 25, face = "bold.italic")
   ) +
   labs(title = "Actual VS Expected Number of Crashes",
        y = "Number of Crashes",
        x = "Distance Along I-15 (m)",
        size = "Flow",
-       color = "Crash Type") +
+       color = "Type") +
   easy_center_title() +
   geom_vline(xintercept = cities_x,
              alpha = .7,
@@ -172,7 +174,83 @@ ggplot(data = plotting_points, aes(
   annotate("text",
            x = cities_x,
            y = rep(275, length(cities_x)),
-           label = cities_name)
+           label = cities_name,
+           size = 7) +
+  guides(color = guide_legend(override.aes = list(size = 5)))
+dev.off()
+
+
+# Plotting work zone
+colors <- brewer.pal(8, "Dark2")
+
+work_lehi <- c(279, 284) * 1609.34
+work_layton <- c(330, 339) * 1609.34
+work_slc <- c(295, 297) * 1609.34
+
+# points for notable cities
+cities_x <- c(300, 339, 253, 284, 332)
+cities_x <- cities_x * 1609.34
+cities_name <- c("SLC", "Ogden", "Spanish Fork", "Lehi", "Layton")
+
+
+pdf("./figures/road_work.pdf", width = 18, height = 10)
+# Makes the plot of actual vs expected number of crashes
+ggplot(data = plotting_points, aes(
+  x = dist_to_bottom,
+  y = value,
+  color = name,
+  size = Flow
+)) +
+  scale_color_manual(values = c(colors[5], colors[6]),
+                     labels = c("Expected", "Actual")) +
+  annotate("rect",
+           xmin = work_layton[1],
+           xmax = work_layton[2],
+           ymin = -Inf,
+           ymax = Inf,
+           alpha = .25,
+           color = NA,
+           fill = "red")  +
+  annotate("rect",
+           xmin = work_lehi[1],
+           xmax = work_lehi[2],
+           ymin = -Inf,
+           ymax = Inf,
+           alpha = .25,
+           color = NA,
+           fill = "red")+
+  annotate("rect",
+           xmin = work_slc[1],
+           xmax = work_slc[2],
+           ymin = -Inf,
+           ymax = Inf,
+           alpha = .25,
+           color = NA,
+           fill = "red")+
+  geom_vline(xintercept = cities_x,
+             alpha = .7,
+             linetype = "dotted") +
+  annotate("text",
+           x = cities_x,
+           y = rep(275, length(cities_x)),
+           label = cities_name,
+           size = 7) +
+  geom_point() +
+  theme_bw() +
+  theme(
+    plot.title = element_text(size = 35, face = "bold.italic"),
+    axis.title.x = element_text(size = 25, face = "bold"),
+    axis.title.y = element_text(size = 25, face = "bold"),
+    legend.title = element_text(size = 25, face = "bold.italic"),
+    legend.text = element_text(size = 25, face = "bold.italic")
+  ) +
+  labs(title = "Areas of Construction",
+       y = "Number of Crashes",
+       x = "Distance Along I-15 (m)",
+       size = "Flow",
+       color = "Type") +
+  easy_center_title() +
+  guides(color = guide_legend(override.aes = list(size = 5)))
 dev.off()
 
 
@@ -181,6 +259,9 @@ chisq.test(
   x = sub_points$num_crashes,
   p = sub_points$exp_flow / sum(sub_points$exp_flow)
 )
+
+
+
 
 # smooth the flow
 smooth_flow <- smooth.spline(sub_points$dist_to_bottom,
@@ -219,16 +300,16 @@ ggplot(data = plotting_points, aes(
   theme_bw() +
   theme(
     plot.title = element_text(size = 35, face = "bold.italic"),
-    axis.title.x = element_text(size = 24, face = "bold"),
-    axis.title.y = element_text(size = 24, face = "bold"),
-    legend.title = element_text(size = 20, face = "bold.italic"),
-    legend.text = element_text(size = 20, face = "bold.italic")
+    axis.title.x = element_text(size = 25, face = "bold"),
+    axis.title.y = element_text(size = 25, face = "bold"),
+    legend.title = element_text(size = 25, face = "bold.italic"),
+    legend.text = element_text(size = 25, face = "bold.italic")
   ) +
   labs(title = "Actual VS Expected Number of Crashes",
        y = "Number of Crashes",
        x = "Distance Along I-15 (m)",
        size = "Flow",
-       color = "Crash Type") +
+       color = "Type") +
   easy_center_title() +
   geom_vline(xintercept = cities_x,
              alpha = .7,
@@ -236,7 +317,9 @@ ggplot(data = plotting_points, aes(
   annotate("text",
            x = cities_x,
            y = rep(275, length(cities_x)),
-           label = cities_name)
+           label = cities_name,
+           size = 7) +
+  guides(color = guide_legend(override.aes = list(size = 5)))
 
 
 # Chi-square test
