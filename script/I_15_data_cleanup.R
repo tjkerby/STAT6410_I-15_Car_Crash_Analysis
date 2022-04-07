@@ -112,6 +112,13 @@ data <- data %>%
 
 flow_data <- data
 
+library(ggplot2)
+station_points <- sf::st_as_sf(flow_data,
+                           coords = c("Longitude", "Latitude"),
+                           crs = 4269)
+ggplot(station_points) + geom_sf(aes(col = Flow)) + 
+  scale_color_viridis_c() + theme_bw()
+
 
 # save as data as RObject
 save(flow_data, file = "data-raw/RObject/flow_data.RData")
