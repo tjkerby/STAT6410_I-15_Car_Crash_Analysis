@@ -4,6 +4,7 @@ library(ggeasy)
 library(dplyr)
 library(viridis)
 library(RColorBrewer)
+library(ggformula)
 load("./data-raw/RObject/station_points_final.RData")
 
 station_points <- dplyr::arrange(station_points, dist_to_bottom)
@@ -70,7 +71,8 @@ ggplot(data = plotting_points, aes(
     axis.title.x = element_text(size = 25, face = "bold"),
     axis.title.y = element_text(size = 25, face = "bold"),
     legend.title = element_text(size = 25, face = "bold.italic"),
-    legend.text = element_text(size = 25, face = "bold.italic")
+    legend.text = element_text(size = 25, face = "bold.italic"),
+    axis.text = element_text(size = 20)
   ) +
   labs(title = "Actual VS Expected Number of Crashes",
        y = "Number of Crashes",
@@ -104,7 +106,8 @@ ggplot(station_points,
     axis.title.y = element_text(size = 24, face = "bold"),
     legend.title = element_text(size = 20, face = "bold.italic"),
     legend.text = element_text(size = 20, face = "bold.italic"),
-    legend.position = "none"
+    legend.position = "none",
+    axis.text = element_text(size = 20)
   ) +
   labs(title = "Crashes/Flow by Range",
        y = "Crashes / Flow",
@@ -160,7 +163,8 @@ ggplot(data = plotting_points, aes(
     axis.title.x = element_text(size = 25, face = "bold"),
     axis.title.y = element_text(size = 25, face = "bold"),
     legend.title = element_text(size = 25, face = "bold.italic"),
-    legend.text = element_text(size = 25, face = "bold.italic")
+    legend.text = element_text(size = 25, face = "bold.italic"),
+    axis.text = element_text(size = 20)
   ) +
   labs(title = "Actual VS Expected Number of Crashes",
        y = "Number of Crashes",
@@ -178,6 +182,123 @@ ggplot(data = plotting_points, aes(
            size = 7) +
   guides(color = guide_legend(override.aes = list(size = 5)))
 dev.off()
+
+
+
+
+
+# Chi-square test
+chisq.test(
+  x = sub_points$num_crashes,
+  p = sub_points$exp_flow / sum(sub_points$exp_flow)
+)
+
+
+
+
+# smooth the flow
+smooth_flow <- smooth.spline(sub_points$dist_to_bottom,
+                             sub_points$Flow,
+                             df = 20)
+
+# Plots the smoothing spline
+pdf("./figures/flow_smoothing_spline.pdf", width = 18, height = 10)
+ggplot(data = sub_points, aes(x = dist_to_bottom, y = Flow)) +
+  geom_point(size = 4) +
+  geom_spline(aes(dist_to_bottom, Flow),
+              data = sub_points,
+              df = 20,
+              color = "red",
+              size = 2) +
+  theme_bw() +
+  theme(
+    plot.title = element_text(size = 35, face = "bold.italic"),
+    axis.title.x = element_text(size = 24, face = "bold"),
+    axis.title.y = element_text(size = 24, face = "bold"),
+    legend.title = element_text(size = 20, face = "bold.italic"),
+    legend.text = element_text(size = 20, face = "bold.italic"),
+    legend.position = "none",
+    axis.text = element_text(size = 20)
+  ) +
+  labs(title = "Flow Smoothing Spline",
+       y = "Flow",
+       x = "Distance Along I-15 (m)",
+       size = FALSE,
+       color = FALSE) +
+  easy_center_title() +
+  geom_vline(xintercept = cities_x,
+             alpha = .7,
+             linetype = "dotted") +
+  annotate("text",
+           x = cities_x,
+           y = rep(6000, length(cities_x)),
+           label = cities_name,
+           size = 6.5)
+dev.off()
+
+
+# Gets smoothed flow
+sub_points$smooth_flow <- predict(smooth_flow,
+                                  sub_points$dist_to_bottom)$y
+sub_points$exp_flow_s <- expected_count(sub_points,
+                                        1,
+                                        "smooth_flow")
+
+# Plots new flow expected counts
+# Makes the plot of actual vs expected number of crashes
+plotting_points <- sub_points %>%
+  dplyr::select(
+    num_crashes, dist_to_bottom,
+    exp_flow_s, smooth_flow
+  ) %>%
+  tidyr::pivot_longer(cols = c(
+    num_crashes,
+    exp_flow_s
+  ))
+
+pdf("./figures/sub_region_smoothed_flow.pdf", width = 18, height = 10)
+ggplot(data = plotting_points, aes(
+  x = dist_to_bottom,
+  y = value,
+  color = name,
+  size = smooth_flow
+)) +
+  scale_color_manual(values = c(colors[5], colors[6]),
+                     labels = c("Expected", "Actual")) +
+  geom_point() +
+  theme_bw() +
+  theme(
+    plot.title = element_text(size = 35, face = "bold.italic"),
+    axis.title.x = element_text(size = 25, face = "bold"),
+    axis.title.y = element_text(size = 25, face = "bold"),
+    legend.title = element_text(size = 25, face = "bold.italic"),
+    legend.text = element_text(size = 25, face = "bold.italic"),
+    axis.text = element_text(size = 20)
+  ) +
+  labs(title = "Actual VS Expected Number of Crashes",
+       y = "Number of Crashes",
+       x = "Distance Along I-15 (m)",
+       size = "Flow",
+       color = "Type") +
+  easy_center_title() +
+  geom_vline(xintercept = cities_x,
+             alpha = .7,
+             linetype = "dotted") +
+  annotate("text",
+           x = cities_x,
+           y = rep(275, length(cities_x)),
+           label = cities_name,
+           size = 7) +
+  guides(color = guide_legend(override.aes = list(size = 5)))
+dev.off()
+
+# Chi-square test
+chisq.test(
+  x = sub_points$num_crashes,
+  p = sub_points$exp_flow_s / sum(sub_points$exp_flow_s)
+)
+
+
 
 
 # Plotting work zone
@@ -242,7 +363,8 @@ ggplot(data = plotting_points, aes(
     axis.title.x = element_text(size = 25, face = "bold"),
     axis.title.y = element_text(size = 25, face = "bold"),
     legend.title = element_text(size = 25, face = "bold.italic"),
-    legend.text = element_text(size = 25, face = "bold.italic")
+    legend.text = element_text(size = 25, face = "bold.italic"),
+    axis.text = element_text(size = 20)
   ) +
   labs(title = "Areas of Construction",
        y = "Number of Crashes",
@@ -252,78 +374,3 @@ ggplot(data = plotting_points, aes(
   easy_center_title() +
   guides(color = guide_legend(override.aes = list(size = 5)))
 dev.off()
-
-
-# Chi-square test
-chisq.test(
-  x = sub_points$num_crashes,
-  p = sub_points$exp_flow / sum(sub_points$exp_flow)
-)
-
-
-
-
-# smooth the flow
-smooth_flow <- smooth.spline(sub_points$dist_to_bottom,
-                             sub_points$Flow,
-                             df = 20)
-plot(sub_points$dist_to_bottom,
-     sub_points$Flow)
-lines(smooth_flow, col="red")
-sub_points$smooth_flow <- predict(smooth_flow,
-                                  sub_points$dist_to_bottom)$y
-sub_points$exp_flow_s <- expected_count(sub_points,
-                                        1,
-                                        "smooth_flow")
-
-# Plots new flow expected counts
-# Makes the plot of actual vs expected number of crashes
-plotting_points <- sub_points %>%
-  dplyr::select(
-    num_crashes, dist_to_bottom,
-    exp_flow_s, smooth_flow
-  ) %>%
-  tidyr::pivot_longer(cols = c(
-    num_crashes,
-    exp_flow_s
-  ))
-
-ggplot(data = plotting_points, aes(
-  x = dist_to_bottom,
-  y = value,
-  color = name,
-  size = smooth_flow
-)) +
-  scale_color_manual(values = c(colors[5], colors[6]),
-                     labels = c("Expected", "Actual")) +
-  geom_point() +
-  theme_bw() +
-  theme(
-    plot.title = element_text(size = 35, face = "bold.italic"),
-    axis.title.x = element_text(size = 25, face = "bold"),
-    axis.title.y = element_text(size = 25, face = "bold"),
-    legend.title = element_text(size = 25, face = "bold.italic"),
-    legend.text = element_text(size = 25, face = "bold.italic")
-  ) +
-  labs(title = "Actual VS Expected Number of Crashes",
-       y = "Number of Crashes",
-       x = "Distance Along I-15 (m)",
-       size = "Flow",
-       color = "Type") +
-  easy_center_title() +
-  geom_vline(xintercept = cities_x,
-             alpha = .7,
-             linetype = "dotted") +
-  annotate("text",
-           x = cities_x,
-           y = rep(275, length(cities_x)),
-           label = cities_name,
-           size = 7) +
-  guides(color = guide_legend(override.aes = list(size = 5)))
-
-
-# Chi-square test
-chisq.test(
-  x = sub_points$num_crashes,
-  p = sub_points$exp_flow_s / sum(sub_points$exp_flow_s)
-)
